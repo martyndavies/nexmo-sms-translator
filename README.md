@@ -294,7 +294,10 @@ Save it. Then reload `http://localhost:8000` and open your console. If you now s
 
 Let's get the message into the page itself. Start by heading back into `public/js/app.js` and load it up with all the JS that you can find in this [GitHub Gist](https://gist.github.com/martyndavies/a8effab804f013b74d489ef10fdfd0c4)
 
-This code handles displaying the messages, and also takes care of sending replies back to the server. In order to accept those replies and send them on we need to add a new route to our `server.js` file:
+This code handles displaying the messages, and also takes care of sending replies back to the server.
+
+## Sending back translated replies
+In order to accept those replies and send them on we need to add a new route to our `server.js` file:
 
 ```javascript
 app.post('/outbound-reply', (req, res) => {
