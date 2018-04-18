@@ -1,15 +1,21 @@
+// Set up SocketIO
 const socket = io();
 
-let currentMessage;
-
+// If SocketIO connects to the server, let us know.
 socket.on('connect', function(data) {
   socket.emit('join', 'Support interface connected...');
 });
 
+// If a newMessage is recieved from the server
 socket.on('newMessage', function(message) {
   createNewMessage(message, 'inbound');
 });
 
+// Each newMessage inbound is held here
+let currentMessage;
+
+
+// Check the type of message and place it in the DOM
 const createNewMessage = (message, messageType) => {
 
   if (messageType == 'inbound') {
@@ -21,6 +27,7 @@ const createNewMessage = (message, messageType) => {
   const messageContainer = document.createElement('div');
   messageContainer.className = 'row';
 
+  // New inbound messages come up green like an SMS would
   if (messageType == 'inbound') {
     messageContainer.innerHTML = `
       <div class="green right message-bubble">
@@ -28,6 +35,8 @@ const createNewMessage = (message, messageType) => {
       </div>
     `
   } else {
+
+    // Replies come up blue like an iMessage would
     messageContainer.innerHTML = `
       <div class="blue left message-bubble">
         <span class="white-text">${message}</span>
@@ -35,12 +44,14 @@ const createNewMessage = (message, messageType) => {
     `
   }
 
+  // Add the message bubbles to the DOM
   incomingMessageArea.appendChild(messageContainer);
 }
 
-
+// Define where the reply button is
 const replyButton = document.getElementById('reply-button');
 
+// Listen for clicks on the reply button
 replyButton.addEventListener('click', (e) => {
   const replyBox = document.getElementById('reply-box');
 
@@ -50,6 +61,7 @@ replyButton.addEventListener('click', (e) => {
     lang: currentMessage.lang
   }
   
+  // Pass the reply back to the server along with the target lang, and the number to reply to
   fetch('/outbound-reply', {
     method: 'POST',
     body: JSON.stringify(reply),
