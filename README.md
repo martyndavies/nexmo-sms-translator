@@ -7,7 +7,7 @@ Wouldn’t it be great if the inbound messages were automatically translated int
 
 In this example we’re going to show you how to build out a simple solution that automatically translates inbound and outbound messages into different languages in real time.
 
-In addition to this basic outline code, we've create a more complete application that you can clone from [GitHub](https://github.com/martyndavies/transporter-support) and use further (see below). Although if you'd like this *exact* code, you can [get that right here](private repo).
+In addition to this basic outline code, we've create a more complete application that you can clone from [GitHub](https://github.com/martyndavies/transporter-support) and use further (see below). Although if you'd like this *exact* code, you can [get that right here](https://github.com/martyndavies/nxm-blog-demo).
 
 ![The final app](https://cl.ly/1A3l2E093B35/Screen%20Recording%202018-04-16%20at%2009.55%20am.gif)
 
