@@ -77,6 +77,17 @@ IBM_WATSON_PASSWORD=YOUR_IBM_WATSON_PASSWORD
 SENDER=YOUR_NEXMO_PHONE_NUMBER
 ```
 
+You don't want this file ending up in a repository either, so let's make a `.gitignore` file:
+
+```
+$ touch .gitignore
+```
+Then add the following two lines to it:
+
+```
+node_modules/
+.env
+```
 Finally, create a file to house all our server code:
 
 `$ touch server.js`
@@ -84,32 +95,43 @@ Finally, create a file to house all our server code:
 ...and add the following code:
 
 ```javascript
+// This is DotEnv. If in 'production' don't use it.
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+    require('dotenv').config();
+  }
 
+// Load the modules we need for the app
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
+
+// Set the port to either the server port or port 8000
 const port = process.env.PORT || 8000;
 
-const Nexmo = require('nexmo');
+// The Nexmo number that we'll be replying from
+const sender = process.env.SENDER;
 
+// Init Nemo with details from .env
+const Nexmo = require('nexmo');
 var nexmo = new Nexmo({
   apiKey: process.env.NEXMO_API_KEY,
   apiSecret: process.env.NEXMO_API_SECRET
 });
 
-const sender = process.env.SENDER;
-
+// Init a server instance and bind our Express instance to it
 const server = require('http').createServer(app);
-app.use(bodyParser.json());
 
+// Tell Express to use bodyParser
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// Receive new messages from Nexmo and send them for translation
 app.post('/inbound', (req, res) => {
   console.log(req.body);
   res.sendStatus(200); // 200 OK
 });
 
+// Set up the server to listen out for all of the things...
 server.listen(port, () => {
   console.log(`App is listening on ${port}`);
 });
@@ -131,6 +153,7 @@ Their API allows us to both *identify* the language a piece of text is in, as we
 Let's set it up by adding the following to `server.js`:
 
 ```javascript
+// Init the IBM Watson SDK and set up a language translator
 const watson = require('watson-developer-cloud');
 const LanguageTranslatorV2 = require('watson-developer-cloud/language-translator/v2');
 
@@ -139,8 +162,8 @@ const languageTranslator = new LanguageTranslatorV2({
   password: process.env.IBM_WATSON_PASSWORD,
   url: 'https://gateway.watsonplatform.net/language-translator/api/'
 });
-```
-```javascript
+
+// This function translates text into a target language
 const translateText = (text, targetLanguage, cb) => { 
   languageTranslator.identify({text: text}, (err, language) => {
 
@@ -148,12 +171,15 @@ const translateText = (text, targetLanguage, cb) => {
       cb(err);
     }
     
+    // What language is 'text' in?
     let languageDecision = language.languages[0].language;
 
+    // If it's English, and the target lang is also English, stop here.
     if (languageDecision === 'en' && targetLanguage == 'en') {
       cb({translated: false, text})
     } else {
         
+      // Translate the text into the targetLanguge
       languageTranslator.translate({
         text: text,
         source: languageDecision,
@@ -162,8 +188,11 @@ const translateText = (text, targetLanguage, cb) => {
 
         if (err) { cb(err) }
 
+        // Get the first translation off the returned array
         let translationData = translation.translations[0];
 
+        // Bundle up a new object with the translated text in it
+        // pass it back to the callback
         cb({
           text,
           translation: translationData.translation,
@@ -209,7 +238,7 @@ app.post('/inbound', (req, res) => {
 
 ```
 
-Any incoming messages will now be translated into English and logged to the console.
+The above code takes the inbound SMS messages and passes them to our `translateText` function, translates them into English and logs them to the console.
 
 ## Passing the messages to the browser
 Now that we've got incoming messages being translated, we need to pass them to the browser to our 'support agents' can interact with them.
@@ -219,31 +248,41 @@ To do this in real time, we'll need to use [Socket.io](https://socket.io/).
 In your `server.js` file add:
 
 ```javascript
+// Init SocketIO and bind to the server instance
 const io = require('socket.io')(server);
 
 // Bind IO to our Express instance
 app.io = io;
 
+// Let us know when SocketIO is up and running
 io.on('connection', client => {  
   console.log('Client side connected...');
 
+  // Let us know when the client side is connected
   client.on('join', data => {
     console.log(data);
   });
 });
 
 ```
-Then modify your `/inbound` route to emit the translated messages via socket.io:
+Above we set up the code we need for SocketIO, but the important piece to note is the line `app.io = io`. This takes the instance of SocketIO and binds it to our Express instance we set up earlier and called `app`. With this in place you can more easily emit messages to SocketIO as part of the usual Express routes.
+
+Modify your `/inbound` route to emit the translated messages via socket.io using our newly combined Express & SocketIO instance:
 
 ```javascript
 app.post('/inbound', (req, res) => {
+  // Get the text of the incoming message
   const text = req.body.text;
 
+  // Pass the text to our translateText function and get the translated result
   const translation =  translateText(text, 'en', (translationObj) => {
     if (translationObj.error) {
       console.log(translationObj);
     }
 
+    // Combine the object translateText returns with
+    // the object we get originally from Nexmo and emit it
+    // to the client side via SocketIO
     req.app.io.emit('newMessage', {
       translationObj,
       ...req.body
@@ -257,7 +296,7 @@ app.post('/inbound', (req, res) => {
 ```
 
 ## Build an interface to reply with
-In your terminal, create two new files in your app directory:
+In your terminal, run the following commands in the root of your app directory:
 
 ```
 $ mkdir public && mkdir public/js
@@ -276,15 +315,18 @@ app.get('/', (req, res) => {
 ```
 Open up the `index.html` file and copy in the contents of [this file](https://gist.github.com/martyndavies/ddb63b7191e0cf87d0502b3db491ffa0). It contains all you need for a simple frontend to reply to the messages.
 
-Next, open `public/js/app.js` and add the the code to set up Socket.io:
+Next, open `public/js/app.js` and add the the code to set up Socket.io on the client side:
 
 ```javascript
+// Init SocketIO
 const socket = io();
 
+// Let us know when the server is connected
 socket.on('connect', function(data) {
   socket.emit('join', 'Support interface connected...');
 });
 
+// Log any messages marked 'newMessage' to the console
 socket.on('newMessage', function(message) {
   console.log(message);
 });
@@ -294,7 +336,7 @@ Save it. Then reload `http://localhost:8000` and open your console. If you now s
 
 Let's get the message into the page itself. Start by heading back into `public/js/app.js` and load it up with all the JS that you can find in this [GitHub Gist](https://gist.github.com/martyndavies/a8effab804f013b74d489ef10fdfd0c4)
 
-This code handles displaying the messages, and also takes care of sending replies back to the server.
+This code handles displaying the messages within the page, and also takes care of sending replies back to the server.
 
 ## Sending back translated replies
 In order to accept those replies and send them on we need to add a new route to our `server.js` file:
@@ -322,7 +364,9 @@ In the `/outbound-reply` route we first check to see if the target language is E
 
 If no translation is needed then the message is sent without the need for translating.
 
-You'll notice that the message type for the translated messages is set to `unicode`. This is so that special characters will be properly handled in the translated replies, but does also shorten the message's overall character count. You can find more detail on Nexmo's handling of message types in the article [How Long is a Single SMS body](https://help.nexmo.com/hc/en-us/articles/204076866-How-Long-is-a-Single-SMS-body-), found in our Knowledge Base.
+You'll notice that the message type for the translated messages is set to `unicode`. This is so that special characters will be properly handled in the translated replies, but does also shorten the message's overall character count. As a result you may send more SMS to achieve the same result as with `text`, which will increase your costs.
+
+You can find more detail on Nexmo's handling of message types in the article [How Long is a Single SMS body](https://help.nexmo.com/hc/en-us/articles/204076866-How-Long-is-a-Single-SMS-body-), found in our Knowledge Base.
 
 # Conclusion
 As you can see from the code, adding translation to this app is actually relatively trivial and doesn't require a huge amount of effort. This means that it could well be worth considering how APIs, like those provided by IBM in this case, can better enhance your overall user experience.
