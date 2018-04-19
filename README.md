@@ -1,13 +1,13 @@
 # Overview
-If you’ve ever worked on the receiving end of customer support for a company whose services are used in many countries, you’ll know that receiving messages in a foreign language can be a regular occurance.
+If you’ve ever worked in customer support for a company whose services are used in many countries, you’ll know that receiving messages in a foreign language can be a regular occurance.
 
-When these messages come in there’s only so much, “Hey, does anyone speak Spanish?”, that you can do in Slack before you need something better.
+When these messages come in there’s only so much, “Hey, does anyone speak Spanish?”, that you can do before you need something better.
 
 Wouldn’t it be great if the inbound messages were automatically translated into your language of choice, and the replies that you send back were translated into the recipients native tongue? Sure would.
 
 In this example we’re going to show you how to build out a simple solution that automatically translates inbound and outbound messages into different languages in real time.
 
-In addition to this basic outline code, we've create a more complete application that you can clone from [GitHub](https://github.com/martyndavies/transporter-support) and use further (see below). Although if you'd like this *exact* code, you can [get that right here](https://github.com/martyndavies/nxm-blog-demo).
+In addition to this basic outline code, we've created a more complete application that you can clone from [GitHub](https://github.com/martyndavies/transporter-support) and use further (see below). Although if you'd like the code for this tutorial, you can [get that right here](https://github.com/martyndavies/nxm-blog-demo).
 
 ![The final app](https://cl.ly/1A3l2E093B35/Screen%20Recording%202018-04-16%20at%2009.55%20am.gif)
 
@@ -42,7 +42,7 @@ Ngrok will launch, and provide you with a URL (as shown below).
 
 ![Ngrok in Terminal](https://cl.ly/2j2a401D0D0t/[86d18c55ebd03b172d79f09b5ed91fbc]_Image%202018-04-16%20at%2012.27.21%20pm.png)
 
-In the *Your Numbers* section of the Nexmo dashboard, you can edit the settings for the number you're using for the app. Set the webhook to point to the URL that Nrgok gave you:
+In the *Your Numbers* section of the Nexmo dashboard, you can edit the settings for the number you're using for the app. Set the webhook to point to the URL that Ngrok gave you:
 
 ![Nexmo Edit Number](https://cl.ly/0w3J0N1W3d26/Image%202018-04-16%20at%2012.37.50%20pm.png)
 
@@ -322,14 +322,12 @@ In the `/outbound-reply` route we first check to see if the target language is E
 
 If no translation is needed then the message is sent without the need for translating.
 
-You'll notice that the message type for the translated messages is set to `unicode`. This is so that special characters will be properly handled in the translated replies, but does also shorten the message's overall character count.
-
-You can find more detail on Nexmo's handling of message types in the article [How Long is a Single SMS body](https://help.nexmo.com/hc/en-us/articles/204076866-How-Long-is-a-Single-SMS-body-), found in our Knowledge Base.
+You'll notice that the message type for the translated messages is set to `unicode`. This is so that special characters will be properly handled in the translated replies, but does also shorten the message's overall character count. You can find more detail on Nexmo's handling of message types in the article [How Long is a Single SMS body](https://help.nexmo.com/hc/en-us/articles/204076866-How-Long-is-a-Single-SMS-body-), found in our Knowledge Base.
 
 # Conclusion
 As you can see from the code, adding translation to this app is actually relatively trivial and doesn't require a huge amount of effort. This means that it could well be worth considering how APIs, like those provided by IBM in this case, can better enhance your overall user experience.
 
-Just by adding this to our little app we've given ourselves the ability to communicate in at least 6 more languages in a manner we couldn't before. How might this change how you think about your next app build? The world is now your oyster.
+Just by adding this to our little app we've given ourselves the ability to communicate in at least 6 more languages in a manner we couldn't before. How might this change the way you think about your next app build? The world is now your oyster.
 
-#Where next?
-A natrual next step for this would be to take it beyond SMS and apply the same principles to messaging applications. A lot of the groundwork has been done here, so why don't you check out what you can do with our new [Messages API](https://www.nexmo.com/products/messages) and starting using this with input from Facebook Messenger and Viber?
+# Where next?
+A natrual next step for this would be to take it beyond SMS and apply the same principles to other messaging applications. A lot of the groundwork has been done here, so why don't you check out what you can do with our new [Messages API](https://www.nexmo.com/products/messages) and starting using this with input from Facebook Messenger and Viber?
