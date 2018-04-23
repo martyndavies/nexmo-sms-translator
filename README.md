@@ -5,9 +5,9 @@ When these messages come in there’s only so much, “Hey, does anyone speak Sp
 
 Wouldn’t it be great if the inbound messages were automatically translated into your language of choice, and the replies that you send back were translated into the recipients native tongue? Sure would.
 
-In this example we’re going to show you how to build out a simple solution that automatically translates inbound and outbound messages into different languages in real time.
+In this example we’re going to show you how to build out a solution that automatically translates inbound and outbound messages into different languages in real time.
 
-In addition to this basic outline code, we've created a more complete application that you can clone from [GitHub](https://github.com/martyndavies/transporter-support) and use further (see below). Although if you'd like the code for this tutorial, you can [get that right here](https://github.com/martyndavies/nxm-blog-demo).
+If you'd like the code used in this tutorial to follow along with, you can [get that right here](https://github.com/martyndavies/nxm-blog-demo).
 
 ![The final app](https://cl.ly/1A3l2E093B35/Screen%20Recording%202018-04-16%20at%2009.55%20am.gif)
 
@@ -19,7 +19,7 @@ If you’re going to build along then you’ll need a few things before we start
 
 Make sure you have your API keys for both accounts handy as we’ll need them shortly.
 
-We’re going to build this app using a simple backend API that we’ll create in NodeJS, so if you need to install that, [you can do so here](https://nodejs.org/en/download/package-manager/). 
+We’re going to build this app using a backend API written in NodeJS, if you need to install that [you can do so here](https://nodejs.org/en/download/package-manager/). 
 
 For development purposes, you'll also need [Ngrok](https://ngrok.com/) so you can receive inbound messages on your local machine. We'll cover how it's used in this project below.
 
@@ -28,7 +28,7 @@ For development purposes, you'll also need [Ngrok](https://ngrok.com/) so you ca
 ## Set up Nexmo
 Nexmo requires the least amount of work, so we'll set that up first.
 
-Start by purchasing a new number that supports SMS.
+Start by purchasing a new number that supports SMS. You can do this directly from the [Nexmo dashboard](https://dashboard.nexmo.com), or by [installing the Nexmo CLI](https://github.com/Nexmo/nexmo-cli) which will allow you to purchase a number (and perform lots of other actions) directly from your command line.
 
 ![Buying numbers in the Nexmo dashboard](https://cl.ly/341A193z2z43/[539a483011db5933ada06811d494d79f]_Image%202018-04-16%20at%2012.35.15%20pm.png)
 
@@ -42,7 +42,7 @@ Ngrok will launch, and provide you with a URL (as shown below).
 
 ![Ngrok in Terminal](https://cl.ly/2j2a401D0D0t/[86d18c55ebd03b172d79f09b5ed91fbc]_Image%202018-04-16%20at%2012.27.21%20pm.png)
 
-In the *Your Numbers* section of the Nexmo dashboard, you can edit the settings for the number you're using for the app. Set the webhook to point to the URL that Ngrok gave you:
+In the [*Your Numbers* section](https://dashboard.nexmo.com/your-numbers) of the Nexmo dashboard, you can edit the settings for the number you're using for the app. Set the webhook to point to the URL that Ngrok gave you:
 
 ![Nexmo Edit Number](https://cl.ly/0w3J0N1W3d26/Image%202018-04-16%20at%2012.37.50%20pm.png)
 
@@ -63,11 +63,7 @@ So you don't have to keep stopping and restarting the server, we'll also install
 
 Next, a little safety prep. For security reasons it's good practice not to keep any password information directly in files you might push to GitHub or anywhere else, so we're keeping it elsewhere.
 
-Above, we added DotEnv to our app, so go ahead and create a `.env` file in the root directory so you can keep everything you need for this app safe:
-
-`$ touch .env`
-
-Open the file, and add these variables:
+Above, we added DotEnv to our app, so go ahead and create a `.env` file in the root directory so you can keep everything you need for this app safe. Open the file, and add these variables:
 
 ```
 NEXMO_API_KEY=YOUR_NEXMO_API_KEY
@@ -75,30 +71,19 @@ NEXMO_API_SECRET=YOUR_NEXMO_API_SECRET
 IBM_WATSON_USERNAME=YOUR_IBM_WATSON_USERNAME
 IBM_WATSON_PASSWORD=YOUR_IBM_WATSON_PASSWORD
 SENDER=YOUR_NEXMO_PHONE_NUMBER
+TARGET_LANGUAGE='en'
 ```
 
-You don't want this file ending up in a repository either, so let's make a `.gitignore` file:
-
-```
-$ touch .gitignore
-```
-Then add the following two lines to it:
+You don't want this file ending up in a repository either, so now create a `.gitignore` file in the same directory and add the following two lines to it:
 
 ```
 node_modules/
 .env
 ```
-Finally, create a file to house all our server code:
-
-`$ touch server.js`
-
-...and add the following code:
+Finally, create one more file called `server.js` to house all our server code and add the following code:
 
 ```javascript
-// This is DotEnv. If in 'production' don't use it.
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config();
-  }
+require('dotenv').config();
 
 // Load the modules we need for the app
 const express = require('express');
@@ -111,7 +96,7 @@ const port = process.env.PORT || 8000;
 // The Nexmo number that we'll be replying from
 const sender = process.env.SENDER;
 
-// Init Nemo with details from .env
+// Init Nexmo with details from .env
 const Nexmo = require('nexmo');
 var nexmo = new Nexmo({
   apiKey: process.env.NEXMO_API_KEY,
@@ -168,14 +153,15 @@ const translateText = (text, targetLanguage, cb) => {
   languageTranslator.identify({text: text}, (err, language) => {
 
     if (err) {
-      cb(err);
+      return cb(err);
     }
     
     // What language is 'text' in?
     let languageDecision = language.languages[0].language;
 
-    // If it's English, and the target lang is also English, stop here.
-    if (languageDecision === 'en' && targetLanguage == 'en') {
+    // If the text to translate is in the same lang as our target lang then
+    // there is no need for translation, so just pass the message along.
+    if (languageDecision == process.env.TARGET_LANGUAGE && targetLanguage == process.env.TARGET_LANGUAGE) {
       cb({translated: false, text})
     } else {
         
@@ -186,7 +172,9 @@ const translateText = (text, targetLanguage, cb) => {
         target: targetLanguage
       }, (err, translation) => {
 
-        if (err) { cb(err) }
+        if (err) { 
+          return cb(err)
+        } 
 
         // Get the first translation off the returned array
         let translationData = translation.translations[0];
@@ -224,9 +212,9 @@ In `server.js` modify the `/inbound` route to look like this:
 app.post('/inbound', (req, res) => {
   const text = req.body.text;
 
-  const translation =  translateText(text, 'en', (translationObj) => {
+  const translation =  translateText(text, process.env.TARGET_LANGUAGE, (translationObj) => {
     if (translationObj.error) {
-      console.log(translationObj);
+      return console.log(translationObj);
     }
 
     console.log(translationObj);
@@ -275,16 +263,16 @@ app.post('/inbound', (req, res) => {
   const text = req.body.text;
 
   // Pass the text to our translateText function and get the translated result
-  const translation =  translateText(text, 'en', (translationObj) => {
+  const translation =  translateText(text, process.env.TARGET_LANGUAGE, (translationObj) => {
     if (translationObj.error) {
-      console.log(translationObj);
+      return console.log(translationObj);
     }
 
     // Combine the object translateText returns with
     // the object we get originally from Nexmo and emit it
     // to the client side via SocketIO
     req.app.io.emit('newMessage', {
-      translationObj,
+      ...translationObj,
       ...req.body
     });
 
@@ -300,9 +288,11 @@ In your terminal, run the following commands in the root of your app directory:
 
 ```
 $ mkdir public && mkdir public/js
-$ touch ./public/index.html && touch ./public/js/app.js 
 ```
-Then add the following to `server.js`:
+
+Then in the `public` folder, create a new file called `index.html`. Followed by a file called `app.js` in the `public/js` folder.
+
+Then add these new lines to `server.js`:
 
 ```javascript
 app.use(express.static('public'));
@@ -313,7 +303,7 @@ app.get('/', (req, res) => {
 });
 
 ```
-Open up the `index.html` file and copy in the contents of [this file](https://gist.github.com/martyndavies/ddb63b7191e0cf87d0502b3db491ffa0). It contains all you need for a simple frontend to reply to the messages.
+Open up the `index.html` file and copy in the contents of [this file](https://gist.github.com/martyndavies/ddb63b7191e0cf87d0502b3db491ffa0). It contains all you need for a basic frontend that you can use to reply to the messages.
 
 Next, open `public/js/app.js` and add the the code to set up Socket.io on the client side:
 
@@ -342,17 +332,41 @@ This code handles displaying the messages within the page, and also takes care o
 In order to accept those replies and send them on we need to add a new route to our `server.js` file:
 
 ```javascript
-app.post('/outbound-reply', (req, res) => {
-  if (req.body.lang != 'en') {
-    translateText(req.body.text, req.body.lang, (translatedMessage) => {
-      nexmo.message.sendSms(sender, req.body.number, translatedMessage.translation, {'type': 'unicode'}, () => {
-        res.json({messageStatus: 'sent', translated: true, message: translatedMessage.translation});
-      });
+// Translate replies and send them back to the user
+app.post("/outbound-reply", (req, res) => {
+  // If the language we get from the user is not English, translate it
+  if (req.body.lang != process.env.TARGET_LANGUAGE) {
+    translateText(req.body.text, req.body.lang, translatedMessage => {
+      // Send the translated message back to the user as a Unicode message
+      nexmo.message.sendSms(
+        sender,
+        req.body.number,
+        translatedMessage.translation,
+        { type: "unicode" },
+        () => {
+          res.json({
+            messageStatus: "sent",
+            translated: true,
+            message: translatedMessage.translation
+          });
+        }
+      );
     });
   } else {
-    nexmo.message.sendSms(sender, req.body.number, req.body.text, {'type': 'text'}, () => {
-      res.json({messageStatus: 'sent', translated: false, message: req.body.text});
-    });
+    // If it's just English all the way, don't bother with translation
+    nexmo.message.sendSms(
+      sender,
+      req.body.number,
+      req.body.text,
+      { type: "text" },
+      () => {
+        res.json({
+          messageStatus: "sent",
+          translated: false,
+          message: req.body.text
+        });
+      }
+    );
   }
 });
 
