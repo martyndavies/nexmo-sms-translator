@@ -270,10 +270,11 @@ app.post('/inbound', (req, res) => {
       return console.log(translationObj);
     }
 
-    // Combine the object translateText returns with
-    // the object we get originally from Nexmo and emit it
-    // to the client side via SocketIO
-    req.app.io.emit('newMessage', {
+    // Pass the translated message object, and the object from Nexmo to the client
+    // If you're wondering what those ... dots are, it's because we're using the
+    // spread operator to pull the key:values out of each object so they are returned as one.
+    // It's super useful, more on it here: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax
+    req.app.io.emit("newMessage", {
       ...translationObj,
       ...req.body
     });
