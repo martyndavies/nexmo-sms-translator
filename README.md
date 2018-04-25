@@ -61,6 +61,8 @@ So you don't have to keep stopping and restarting the server, we'll also install
 
 `$ npm install nodemon --save-dev`
 
+If you're unfamiliar with Nodemon (it's great), you can check out more detail on it on their [official site](https://nodemon.io/). Any Nodemon commands we use in this tutorial will work right out of the box as soon as you have it installed.
+
 Next, a little safety prep. For security reasons it's good practice not to keep any password information directly in files you might push to GitHub or anywhere else, so we're keeping it elsewhere.
 
 Above, we added DotEnv to our app, so go ahead and create a `.env` file in the root directory so you can keep everything you need for this app safe. Open the file, and add these variables:
